@@ -1,6 +1,20 @@
 id: deploy_grafana_alloy
 namespace: null.playbooks
 
+inputs:
+  - id: string
+    type: STRING
+    defaults: "Hello World!"
+
+  - id: optional
+    type: STRING
+    required: false
+
+  - id: int
+    type: INT
+    defaults: 100
+
+
 variables:
   user: "murph"
   server_user: "devops"
