@@ -6,17 +6,13 @@ inputs:
     type: STRING
     defaults: "devops"
 
-  - id: env
-    type: STRING
-    defaults: dev
-
 variables:
   local_user: "murph"
   project_name: kestra
   config: dev
   secret_name: ANSIBLE_VARIABLES
   local_path: "/var"
-  remote_base_path: "/home/{{ inputs.remote_user }}"
+  remote_base_path: "/home/{{ inputs.server_user }}"
 
 
 tasks:
@@ -33,7 +29,7 @@ tasks:
     inputFiles:
       doppler-secrets.json: "{{ fromJson(outputs.basic_auth_api.encryptedBody).value.raw }}"
     commands:
-      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/workflows/jammy/deploy/email-api.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.server_user }}" -e "env={{ inputs.env }}" -e "local_path={{ vars.local_path }}" -vv
+      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/workflows/jammy/deploy/email-api.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.server_user }}" -e "local_path={{ vars.local_path }}" -vv
     env:
       USER: ansible
       MY_UID: "1000"
