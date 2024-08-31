@@ -2,7 +2,7 @@ id: deploy_email_api
 namespace: null.playbooks.deploy
 
 inputs:
-  - id: remote_user
+  - id: server_user
     type: STRING
     defaults: "devops"
 
@@ -11,11 +11,12 @@ inputs:
     defaults: dev
 
 variables:
-  user: "murph"
-  remote_base_path: "/home/{{ inputs.remote_user }}"
+  local_user: "murph"
   project_name: kestra
   config: dev
   secret_name: ANSIBLE_VARIABLES
+  local_path: "/var"
+  remote_base_path: "/home/{{ inputs.remote_user }}"
 
 
 tasks:
@@ -27,24 +28,24 @@ tasks:
       accept: application/json
       authorization: "Bearer {{ secret('DOPPLER_TOKEN') }}"
 
-  - id: remove_backup_configs
+  - id: deploy 
     type: io.kestra.plugin.ansible.cli.AnsibleCLI
     inputFiles:
       doppler-secrets.json: "{{ fromJson(outputs.basic_auth_api.encryptedBody).value.raw }}"
     commands:
-      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/playbooks/jammy/deploy/apps/email-api.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.remote_user }}" -e "env={{ inputs.env }}"
+      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/workflows/jammy/deploy/email-api.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.server_user }}" -e "env={{ inputs.env }}" -e "local_path={{ vars.local_path }}" -vv
     env:
       USER: ansible
       MY_UID: "1000"
       MY_GID: "1000"
-      ANSIBLE_CONFIG: /var/ansible/kestra.ansible.cfg
+      ANSIBLE_CONFIG: /var/ansible/ansible.cfg
       SSH_AUTH_SOCK: /ssh-agent
     taskRunner:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       user: ansible
       volumes:
-        - /home/{{ vars.user }}/.ssh/:/home/ansible/.ssh/
+        - /home/{{ vars.local_user }}/kestra/ansible:/var/ansible
+        - /home/{{ vars.local_user }}/workspace:/var/workspace
+        - /home/{{ vars.local_user }}/.ssh/:/home/ansible/.ssh/
         - "{{ envs.ssh_auth_sock }}:/ssh-agent"
-        - /home/{{ vars.user }}/kestra/ansible:/var/ansible
-        - /home/{{ vars.user }}/workspace:/var/workspace
 
