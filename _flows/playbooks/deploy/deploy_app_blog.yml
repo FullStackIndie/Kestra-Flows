@@ -13,6 +13,7 @@ variables:
   local_user: "murph"
   local_path: "/var"
   remote_base_path: "/home/{{ inputs.server_user }}"
+  local_nginx_conf_path: "/var/workspace/configs/nginx/conf.d/blog.conf"
 
 
 tasks:
@@ -32,7 +33,7 @@ tasks:
     inputFiles:
       doppler-secrets.json: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
     commands:
-      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/workflows/jammy/deploy/blog.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.server_user }}" -e "local_path={{ vars.local_path }}" -e "env={{ inputs.environment }}" -vv
+      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/workflows/jammy/deploy/blog.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.server_user }}" -e "local_path={{ vars.local_path }}" -e "env={{ inputs.environment }}" -e "local_nginx_conf_path={{ vars.local_nginx_conf_path}}" -vv
     env:
       USER: ansible
       MY_UID: "1000"
