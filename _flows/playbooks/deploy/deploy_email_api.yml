@@ -8,26 +8,26 @@ inputs:
 
 variables:
   local_user: "murph"
-  project_name: kestra
-  config: dev
-  secret_name: ANSIBLE_VARIABLES
   local_path: "/var"
   remote_base_path: "/home/{{ inputs.server_user }}"
 
 
 tasks:
-  - id: basic_auth_api
-    type: io.kestra.plugin.core.http.Request
-    uri: https://api.doppler.com/v3/configs/config/secret?project={{ vars.project_name }}&config={{ vars.config}}&name={{ vars.secret_name }}
-    encryptBody: true
-    headers:
-      accept: application/json
-      authorization: "Bearer {{ secret('DOPPLER_TOKEN') }}"
+  - id: get_doppler_secret
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: doppler.secrets
+    flowId: doppler_get_secret
+    inputs:
+      project_name: kestra
+      config: dev
+      secret_name: ANSIBLE_VARIABLES
+    wait: true
+    transmitFailed: true
 
   - id: deploy 
     type: io.kestra.plugin.ansible.cli.AnsibleCLI
     inputFiles:
-      doppler-secrets.json: "{{ fromJson(outputs.basic_auth_api.encryptedBody).value.raw }}"
+      doppler-secrets.json: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
     commands:
       - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/workflows/jammy/deploy/email-api.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.server_user }}" -e "local_path={{ vars.local_path }}" -vv
     env:
