@@ -38,6 +38,9 @@ tasks:
       function GetJsonFromEnvs(){
         // turn array of envs into json
         let envs = {{ inputs.envs }}
+        if(envs.length == 0){
+          return {};
+        }
         console.log(envs); 
         let json = {}; 
         envs.forEach((env) =>{

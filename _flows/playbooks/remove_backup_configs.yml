@@ -1,35 +1,26 @@
 id: remove_backup_configs
 namespace: null.playbooks
 
-variables:
-  user: "murph"
-
 tasks:
-  - id: basic_auth_api
-    type: io.kestra.plugin.core.http.Request
-    uri: https://api.doppler.com/v3/configs/config/secrets/download?format=json
-    headers:
-      accept: application/json
-      authorization: "Bearer {{ secret('DOPPLER_TOKEN') }}"
+  - id: get_doppler_secret
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: doppler.secrets
+    flowId: doppler_get_secret
+    inputs:
+      project_name: kestra
+      config: dev
+      secret_name: ANSIBLE_VARIABLES
+    wait: true
+    transmitFailed: true
 
-
-  - id: remove_backup_configs
-    type: io.kestra.plugin.ansible.cli.AnsibleCLI
-    inputFiles:
-      doppler-secrets.json: "{{ fromJson(outputs.basic_auth_api.body).ANSIBLE_VARIABLES }}"
-    commands:
-      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/playbooks/jammy/cleanup/remove_backup_configs.yml --extra-vars "@doppler-secrets.json" -vvvv
-    env:
-      USER: ansible
-      MY_UID: "1000"
-      MY_GID: "1000"
-      ANSIBLE_CONFIG: /var/ansible/kestra.ansible.cfg
-      SSH_AUTH_SOCK: /ssh-agent
-    taskRunner:
-      type: io.kestra.plugin.scripts.runner.docker.Docker
-      user: ansible
-      volumes:
-        - /home/{{ vars.user }}/.ssh/:/home/ansible/.ssh/
-        - "{{ envs.ssh_auth_sock }}:/ssh-agent"
-        - /home/{{ vars.user }}/kestra/ansible:/var/ansible
-
+  - id: run_ansible_workflow
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: null
+    flowId: ansible_base
+    inputs:
+      inventory_path: "/var/ansible/servers/inventory_a2hosting"
+      workflow_path: "/var/ansible/playbooks/jammy/cleanup/remove_backup_configs.yml"
+      doppler_secrets: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
+      local_user: "murph"
+    wait: true
+    transmitFailed: true
