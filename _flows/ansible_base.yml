@@ -1,0 +1,64 @@
+id: ansible_base
+namespace: null
+
+inputs:
+  - id: inventory_path
+    type: STRING
+    defaults: "/var/ansible/servers/inventory_a2hosting"
+    
+  - id: workflow_path
+    type: STRING
+    required: true
+
+  - id: envs
+    type: ARRAY
+    itemType: STRING
+
+tasks:
+  - id: run_nodejs_script
+    type: io.kestra.plugin.scripts.node.Script
+    beforeCommands:
+      - npm install @kestra-io/libs
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+    containerImage: node:slim
+    warningOnStdErr: false
+    script: |
+      const Kestra = require('@kestra-io/libs');
+
+      function GetJsonFromEnvs(){
+        // turn array of envs into json
+        let envs = {{ inputs.envs }}
+        console.log(envs); 
+        let json = {}; 
+        envs.forEach((env) =>{
+          let variable = env.split('=');
+          json[variable[0]] = variable[1];
+        });
+        Kestra.outputs({"extra-vars": json});
+        console.log(JSON.stringify(json));
+      }
+
+      GetJsonFromEnvs();
+
+  - id: deploy
+    type: io.kestra.plugin.ansible.cli.AnsibleCLI
+    inputFiles:
+      doppler-secrets.json: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
+    commands:
+      - ansible-playbook -i {{ inputs.inventory_path }} {{ inputs.workflow_path }} --extra-vars "@doppler-secrets.json"  -vv
+    env:
+      USER: ansible
+      MY_UID: "1000"
+      MY_GID: "1000"
+      ANSIBLE_CONFIG: /var/ansible/ansible.cfg
+      SSH_AUTH_SOCK: /ssh-agent
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+      user: ansible
+      volumes:
+        - /home/{{ vars.local_user }}/kestra/ansible:/var/ansible
+        - /home/{{ vars.local_user }}/workspace:/var/workspace
+        - /home/{{ vars.local_user }}/.ssh/:/home/ansible/.ssh/
+        - "{{ envs.ssh_auth_sock }}:/ssh-agent"
