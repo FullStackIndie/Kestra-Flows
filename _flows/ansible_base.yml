@@ -9,10 +9,19 @@ inputs:
   - id: workflow_path
     type: STRING
     required: true
+  
+  - id: local_user
+    type: STRING
+    defaults: 'murph'
+
+  - id: doppler_secrets
+    type: JSON
+    required: true
 
   - id: envs
     type: ARRAY
     itemType: STRING
+    defaults: []
 
 tasks:
   - id: run_nodejs_script
@@ -35,7 +44,7 @@ tasks:
           let variable = env.split('=');
           json[variable[0]] = variable[1];
         });
-        Kestra.outputs({"extra-vars": json});
+        Kestra.outputs({"extra_vars": json});
         console.log(JSON.stringify(json));
       }
 
@@ -44,9 +53,10 @@ tasks:
   - id: deploy
     type: io.kestra.plugin.ansible.cli.AnsibleCLI
     inputFiles:
-      doppler-secrets.json: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
+      doppler-secrets.json: "{{ inputs.doppler_secrets }}"
+      extra-vars.json: "{{ outputs.run_nodejs_script.vars.extra_vars }}"
     commands:
-      - ansible-playbook -i {{ inputs.inventory_path }} {{ inputs.workflow_path }} --extra-vars "@doppler-secrets.json"  -vv
+      - ansible-playbook -i {{ inputs.inventory_path }} {{ inputs.workflow_path }} --extra-vars "@doppler-secrets.json" --extra-vars "@extra-vars.json" -vv
     env:
       USER: ansible
       MY_UID: "1000"
@@ -58,7 +68,7 @@ tasks:
       pullPolicy: IF_NOT_PRESENT
       user: ansible
       volumes:
-        - /home/{{ vars.local_user }}/kestra/ansible:/var/ansible
-        - /home/{{ vars.local_user }}/workspace:/var/workspace
-        - /home/{{ vars.local_user }}/.ssh/:/home/ansible/.ssh/
+        - /home/{{ inputs.local_user }}/kestra/ansible:/var/ansible
+        - /home/{{ inputs.local_user }}/workspace:/var/workspace
+        - /home/{{ inputs.local_user }}/.ssh/:/home/ansible/.ssh/
         - "{{ envs.ssh_auth_sock }}:/ssh-agent"
