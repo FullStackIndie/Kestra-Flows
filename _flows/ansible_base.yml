@@ -69,6 +69,7 @@ tasks:
       SSH_AUTH_SOCK: /ssh-agent
     taskRunner:
       type: io.kestra.plugin.scripts.runner.docker.Docker
+      image: cytopia/ansible:latest-tools
       pullPolicy: IF_NOT_PRESENT
       user: ansible
       volumes:
