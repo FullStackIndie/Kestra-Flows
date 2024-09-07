@@ -21,7 +21,7 @@ inputs:
   - id: envs
     type: ARRAY
     itemType: STRING
-    defaults: [""]
+    defaults: ["local_user=murph","local_path=/var","remote_base_path=/home/devops"]
 
 tasks:
   - id: run_nodejs_script
@@ -37,8 +37,9 @@ tasks:
 
       function GetJsonFromEnvs(){
         // turn array of envs into json
-        let envs = {{ inputs.envs }}
+        let envs = [...new Set({{ inputs.envs }})] 
         if(envs.length == 0){
+        console.log("Error : Empty array");
           return {};
         }
         console.log(envs); 
