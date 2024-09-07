@@ -2,46 +2,37 @@ id: deploy_grafana_alloy
 namespace: null.playbooks
 
 inputs:
-  - id: remote_user
-    type: STRING
-    defaults: "devops"
-
-
-variables:
-  user: "murph"
-  base_path: "/var"
-  project_name: kestra
-  config: dev
-  secret_name: ANSIBLE_VARIABLES
-
+  - id: envs
+    type: ARRAY
+    itemType: STRING
+    defaults: 
+      - "local_path=/var"
+      - "remote_base_path=/home/devops"
+      - "server_user=devops"
 
 tasks:
-  - id: basic_auth_api
-    type: io.kestra.plugin.core.http.Request
-    uri: https://api.doppler.com/v3/configs/config/secret?project={{ vars.project_name }}&config={{ vars.config}}&name={{ vars.secret_name }}
-    encryptBody: true
-    headers:
-      accept: application/json
-      authorization: "Bearer {{ secret('DOPPLER_TOKEN') }}"
+  - id: get_doppler_secret
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: doppler.secrets
+    flowId: doppler_get_secret
+    inputs:
+      project_name: kestra
+      config: dev
+      secret_name: ANSIBLE_VARIABLES
+    wait: true
+    transmitFailed: true
 
-  - id: remove_backup_configs
-    type: io.kestra.plugin.ansible.cli.AnsibleCLI
-    inputFiles:
-      doppler-secrets.json: "{{ fromJson(outputs.basic_auth_api.encryptedBody).value.raw }}"
-    commands:
-      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/playbooks/jammy/deploy/docker/grafana-alloy.yml --extra-vars "@doppler-secrets.json" -e "base_path={{ vars.base_path }}" -e "server_user={{ inputs.remote_user }}"
-    env:
-      USER: ansible
-      MY_UID: "1000"
-      MY_GID: "1000"
-      ANSIBLE_CONFIG: /var/ansible/kestra.ansible.cfg
-      SSH_AUTH_SOCK: /ssh-agent
-    taskRunner:
-      type: io.kestra.plugin.scripts.runner.docker.Docker
-      user: ansible
-      volumes:
-        - /home/{{ vars.user }}/.ssh/:/home/ansible/.ssh/
-        - "{{ envs.ssh_auth_sock }}:/ssh-agent"
-        - /home/{{ vars.user }}/kestra/ansible:/var/ansible
-        - /home/{{ vars.user }}/workspace:/var/workspace
+
+  - id: run_ansible_workflow
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: null
+    flowId: ansible_base
+    inputs:
+      inventory_path: "/var/ansible/servers/inventory_a2hosting"
+      workflow_path: "/var/ansible/playbooks/jammy/deploy/docker/grafana-alloy.yml"
+      doppler_secrets: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
+      envs: "{{ inputs.envs }}"
+      local_user: "murph"
+    wait: true
+    transmitFailed: true
 
