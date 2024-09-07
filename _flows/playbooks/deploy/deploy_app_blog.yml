@@ -2,19 +2,15 @@ id: deploy_app_blog
 namespace: null.playbooks.deploy
 
 inputs:
-  - id: server_user
-    type: STRING
-    defaults: "devops"
-  - id: environment
-    type: STRING
-    defaults: "dev"
-
-variables:
-  local_user: "murph"
-  local_path: "/var"
-  remote_base_path: "/home/{{ inputs.server_user }}"
-  local_nginx_conf_path: "/var/workspace/configs/nginx/conf.d/blog.conf"
-
+  - id: envs
+    type: ARRAY
+    itemType: STRING
+    defaults: 
+      - "local_path=/var"
+      - "remote_base_path=/home/devops"
+      - "env=dev"
+      - "server_user=devops"
+      - "local_nginx_conf_path=/var/workspace/configs/nginx/conf.d/blog.conf"
 
 tasks:
   - id: get_doppler_secret
@@ -28,24 +24,17 @@ tasks:
     wait: true
     transmitFailed: true
 
-  - id: deploy 
-    type: io.kestra.plugin.ansible.cli.AnsibleCLI
-    inputFiles:
-      doppler-secrets.json: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
-    commands:
-      - ansible-playbook -i /var/ansible/servers/inventory_a2hosting /var/ansible/workflows/jammy/deploy/blog.yml --extra-vars "@doppler-secrets.json" -e "remote_base_path={{ vars.remote_base_path }}" -e "server_user={{ inputs.server_user }}" -e "local_path={{ vars.local_path }}" -e "env={{ inputs.environment }}" -e "local_nginx_conf_path={{ vars.local_nginx_conf_path}}" -vv
-    env:
-      USER: ansible
-      MY_UID: "1000"
-      MY_GID: "1000"
-      ANSIBLE_CONFIG: /var/ansible/ansible.cfg
-      SSH_AUTH_SOCK: /ssh-agent
-    taskRunner:
-      type: io.kestra.plugin.scripts.runner.docker.Docker
-      user: ansible
-      volumes:
-        - /home/{{ vars.local_user }}/kestra/ansible:/var/ansible
-        - /home/{{ vars.local_user }}/workspace:/var/workspace
-        - /home/{{ vars.local_user }}/.ssh/:/home/ansible/.ssh/
-        - "{{ envs.ssh_auth_sock }}:/ssh-agent"
+
+  - id: run_ansible_workflow
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: null
+    flowId: ansible_base
+    inputs:
+      inventory_path: "/var/ansible/servers/inventory_a2hosting"
+      workflow_path: "/var/ansible/workflows/jammy/deploy/blog.yml"
+      doppler_secrets: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
+      envs: "{{ inputs.envs }}"
+      local_user: "murph"
+    wait: true
+    transmitFailed: true
 
