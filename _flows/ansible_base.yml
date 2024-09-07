@@ -21,7 +21,7 @@ inputs:
   - id: envs
     type: ARRAY
     itemType: STRING
-    defaults: ["local_user=murph","local_path=/var","remote_base_path=/home/devops"]
+    defaults: ['local_user=murph',"local_path=/var","remote_base_path=/home/devops"]
 
 tasks:
   - id: run_nodejs_script
