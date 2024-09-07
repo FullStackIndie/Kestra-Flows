@@ -1,0 +1,40 @@
+id: deploy_app_identity
+namespace: null.playbooks.deploy
+
+inputs:
+  - id: envs
+    type: ARRAY
+    itemType: STRING
+    defaults: 
+      - "local_path=/var"
+      - "remote_base_path=/home/devops"
+      - "env=dev"
+      - "server_user=devops"
+      - "local_nginx_conf_path=/var/workspace/configs/nginx/conf.d/identity.conf"
+
+tasks:
+  - id: get_doppler_secret
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: doppler.secrets
+    flowId: doppler_get_secret
+    inputs:
+      project_name: kestra
+      config: dev
+      secret_name: ANSIBLE_VARIABLES
+    wait: true
+    transmitFailed: true
+
+
+  - id: run_ansible_workflow
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: null
+    flowId: ansible_base
+    inputs:
+      inventory_path: "/var/ansible/servers/inventory_a2hosting"
+      workflow_path: "/var/ansible/workflows/jammy/deploy/identity.yml"
+      doppler_secrets: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
+      envs: "{{ inputs.envs }}"
+      local_user: "murph"
+    wait: true
+    transmitFailed: true
+
