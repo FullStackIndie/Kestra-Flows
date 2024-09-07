@@ -1,6 +1,12 @@
 id: remove_backup_configs
 namespace: null.playbooks
 
+inputs:
+  - id: envs
+    type: ARRAY
+    itemType: STRING
+    defaults: ["local_user=murph", "local_path=/var", "remote_base_path=/home/devops"]
+
 tasks:
   - id: get_doppler_secret
     type: io.kestra.plugin.core.flow.Subflow
@@ -22,5 +28,6 @@ tasks:
       workflow_path: "/var/ansible/playbooks/jammy/cleanup/remove_backup_configs.yml"
       doppler_secrets: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
       local_user: "murph"
+      envs: "{{ inputs.envs }}"
     wait: true
     transmitFailed: true
