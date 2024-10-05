@@ -27,16 +27,15 @@ tasks:
   - id: run_nodejs_script
     type: io.kestra.plugin.scripts.node.Script
     beforeCommands:
-      - npm install requestify
-      - npm install @kestra-io/libs
+      - npm i @kestra-io/libs
     # taskRunner:
     #   type: io.kestra.plugin.scripts.runner.docker.Docker
     containerImage: node:slim
     # warningOnStdErr: false
     logLevel: DEBUG
     script: |
-        const requestify = require('requestify');
-        const Kestra = require('@kestra-io/libs');
+        import {Kestra} from '@kestra-io/libs';
+        const kestra = new Kestra();
 
         function GetJsonFromEnvs(){
           // turn array of envs into json
