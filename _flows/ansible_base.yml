@@ -33,18 +33,18 @@ tasks:
     containerImage: node:slim
     warningOnStdErr: false
     script: |
-      const Kestra = require('@kestra-io/libs');
+      import { Kestra } from '@kestra-io/libs';
 
-      function GetJsonFromEnvs(){
+      function GetJsonFromEnvs() {
         // turn array of envs into json
-        let envs = [...new Set({{ inputs.envs }})] 
-        if(envs.length == 0){
-        console.log("Error : Empty array");
+        let envs = [...new Set({{ inputs.envs }})];
+        if (envs.length == 0) {
+          console.log("Error : Empty array");
           return {};
         }
-        console.log(envs); 
-        let json = {}; 
-        envs.forEach((env) =>{
+        console.log(envs);
+        let json = {};
+        envs.forEach((env) => {
           let variable = env.split('=');
           json[variable[0]] = variable[1];
         });
