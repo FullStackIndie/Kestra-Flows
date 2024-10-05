@@ -30,10 +30,10 @@ tasks:
       - npm install @kestra-io/libs
     taskRunner:
       type: io.kestra.plugin.scripts.runner.docker.Docker
-    containerImage: node:slim
+    containerImage: node:lts-slim
     warningOnStdErr: false
     script: |
-      const Kestra = require('@kestra-io/libs');
+      import * as  Kestra from '@kestra-io/libs';
 
       function GetJsonFromEnvs(){
         // turn array of envs into json
