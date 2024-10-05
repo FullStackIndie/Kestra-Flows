@@ -27,32 +27,35 @@ tasks:
   - id: run_nodejs_script
     type: io.kestra.plugin.scripts.node.Script
     beforeCommands:
+      - npm install requestify
       - npm install @kestra-io/libs
-    taskRunner:
-      type: io.kestra.plugin.scripts.runner.docker.Docker
-    containerImage: node:lts-slim
-    warningOnStdErr: false
+    # taskRunner:
+    #   type: io.kestra.plugin.scripts.runner.docker.Docker
+    containerImage: node:slim
+    # warningOnStdErr: false
+    logLevel: DEBUG
     script: |
-      import * as  Kestra from '@kestra-io/libs';
+        const requestify = require('requestify');
+        const Kestra = require('@kestra-io/libs');
 
-      function GetJsonFromEnvs(){
-        // turn array of envs into json
-        let envs = [...new Set({{ inputs.envs }})] 
-        if(envs.length == 0){
-        console.log("Error : Empty array");
-          return {};
+        function GetJsonFromEnvs(){
+          // turn array of envs into json
+          let envs = [...new Set({{ inputs.envs }})] 
+          if(envs.length == 0){
+          console.log("Error : Empty array");
+            return {};
+          }
+          console.log(envs); 
+          let json = {}; 
+          envs.forEach((env) =>{
+            let variable = env.split('=');
+            json[variable[0]] = variable[1];
+          });
+          Kestra.outputs({"extra_vars": json});
+          console.log(JSON.stringify(json));
         }
-        console.log(envs); 
-        let json = {}; 
-        envs.forEach((env) =>{
-          let variable = env.split('=');
-          json[variable[0]] = variable[1];
-        });
-        Kestra.outputs({"extra_vars": json});
-        console.log(JSON.stringify(json));
-      }
 
-      GetJsonFromEnvs();
+        GetJsonFromEnvs();
 
   - id: deploy
     type: io.kestra.plugin.ansible.cli.AnsibleCLI
