@@ -27,15 +27,14 @@ tasks:
   - id: run_nodejs_script
     type: io.kestra.plugin.scripts.node.Script
     beforeCommands:
-      - npm install FullStackIndie/kestra-io-libs --prefix=javascript
-    # taskRunner:
-    #   type: io.kestra.plugin.scripts.runner.docker.Docker
+      - npm i @kestra-io/libs@0.12.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
     containerImage: node:slim
-    # warningOnStdErr: false
+    warningOnStdErr: false
     logLevel: DEBUG
     script: |
-        import Kestra from '@kestra-io/libs';
-        const kestra = new Kestra();
+        const Kestra = require('@kestra-io/libs');
 
         function GetJsonFromEnvs(){
           // turn array of envs into json
