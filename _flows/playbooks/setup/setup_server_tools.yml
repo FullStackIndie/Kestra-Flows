@@ -26,7 +26,7 @@ tasks:
     flowId: ansible_base
     inputs:
       inventory_path: "/var/ansible/servers/inventory_a2hosting"
-      workflow_path: "/var/ansible/playbooks/jammy/setup/1_server_tools_setup.yml"
+      workflow_path: "/var/ansible/playbooks/jammy/setup/3_server_tools_setup.yml"
       doppler_secrets: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
       envs: "{{ inputs.envs }}"
       local_user: "murph"

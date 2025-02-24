@@ -1,4 +1,4 @@
-id: setup_crowdsec_bouncers
+id: setup_ufw
 namespace: null.playbooks.setup
 
 inputs:
@@ -19,6 +19,7 @@ tasks:
       secret_name: ANSIBLE_VARIABLES
     wait: true
     transmitFailed: true
+    
 
   - id: run_ansible_workflow
     type: io.kestra.plugin.core.flow.Subflow
@@ -26,7 +27,7 @@ tasks:
     flowId: ansible_base
     inputs:
       inventory_path: "/var/ansible/servers/inventory_a2hosting"
-      workflow_path: "/var/ansible/playbooks/jammy/setup/6_setup_crowdsec_bouncers.yml"
+      workflow_path: "/var/ansible/playbooks/jammy/setup/2_ufw_setup.yml"
       doppler_secrets: "{{ fromJson(outputs.get_doppler_secret.outputs.secret) }}"
       envs: "{{ inputs.envs }}"
       local_user: "murph"
